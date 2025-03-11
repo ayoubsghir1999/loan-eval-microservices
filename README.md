@@ -119,9 +119,5 @@ docker restart loan-container
 - Implement **CI/CD pipelines** for automated deployment
 
 ## Contributors
-- **Your Name** - Lead Developer
-- **Team Member 1** - Backend Developer
-- **Team Member 2** - DevOps Engineer
-
-## License
-This project is licensed under the **MIT License**.
+- **Ayoub SGHIR** 
+- **Salma KHOLTE**

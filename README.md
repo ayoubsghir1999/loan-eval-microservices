@@ -121,7 +121,8 @@ docker restart loan-container
 ## 📊 Diagramme BPMN du Processus
 Le processus d'évaluation des demandes de prêt est modélisé à l'aide de **BPMN (Business Process Model and Notation)**. Ce diagramme illustre les interactions entre les microservices et le flux de traitement des demandes de prêt.
 
-![image](https://github.com/user-attachments/assets/9e881d5e-01df-44b9-8763-dfaf00e41e20)
+![TD4 drawio](https://github.com/user-attachments/assets/a1762aa0-f001-4032-9cdd-9da7a6cce59d)
+
 
 
 ## 👥 Contributeurs

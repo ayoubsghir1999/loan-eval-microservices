@@ -1,0 +1,140 @@
+# version: "3.8"
+
+# services:
+#   loan-service:
+#     build:
+#       context: ./loan-service  # Ajout du bon chemin pour Dockerfile
+#     container_name: loan-container
+#     environment:
+#       - RABBITMQ_HOST=rabbitmq
+#     depends_on:
+#       - rabbitmq
+#     ports:
+#       - "8001:8001"
+#     networks:
+#       - loan_network
+
+#   rabbitmq:
+#     image: rabbitmq:3-management
+#     container_name: rabbitmq
+#     ports:
+#       - "5672:5672"
+#       - "15672:15672"
+#     networks:
+#       - loan_network
+
+# networks:
+#   loan_network:
+#     driver: bridge
+
+version: "3.8"
+
+services:
+  loan-service:
+    build:
+      context: ./loan-service
+    container_name: loan-container
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - rabbitmq
+    volumes:
+      - loan_db:/app/db  # Partage le volume `loan_db`
+    ports:
+      - "8001:8001"
+    networks:
+      - loan_network
+
+  credit-check:
+    build:
+      context: ./credit-check
+    container_name: credit-check-container
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - PYTHONPATH=/app
+    depends_on:
+      - rabbitmq
+      - loan-service  # S'assurer que loan-service démarre avant
+    command: >
+      sh -c "uvicorn service_credit_check:app --host 0.0.0.0 --port 8002 & celery -A celery_app worker --loglevel=info --queues=credit_check_queue"
+    volumes:
+      - loan_db:/app/db  # Monte le même volume ici
+    ports:
+      - "8002:8002"
+    networks:
+      - loan_network
+  property-evaluation:
+    build:
+      context: ./property-evaluation
+    container_name: property-evaluation-container
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - PYTHONPATH=/app
+    depends_on:
+      - rabbitmq
+      - loan-service
+    command: >
+      sh -c "uvicorn service_property_evaluation:app --host 0.0.0.0 --port 8003 & celery -A celery_app worker --loglevel=info --queues=property_evaluation_queue"
+    volumes:
+      - loan_db:/app/db  # Partage la base de données
+    ports:
+      - "8003:8003"
+    networks:
+      - loan_network
+      
+  decision-service:
+    build:
+      context: ./decision-service
+    container_name: decision-container
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - rabbitmq
+      - credit-check
+      - property-evaluation
+    networks:
+      - loan_network
+    ports:
+      - "8004:8004"
+
+  notification-service:
+    build: ./notification-service
+    container_name: notification-container
+    depends_on:
+      - rabbitmq
+      - decision-service
+    ports:
+      - "8005:8005"
+    networks:
+      - loan_network
+
+  insurance-service:
+    build: ./service-insurance
+    container_name: insurance-container
+    depends_on:
+      - rabbitmq
+    ports:
+      - "8006:8006"
+    networks:
+      - loan_network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - loan_network
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  loan_network:
+    driver: bridge
+
+volumes:
+  loan_db:  # Définition du volume partagé
